@@ -1,6 +1,7 @@
 # SNMP-LAB
 
-<img width="948" height="839" alt="image" src="https://github.com/user-attachments/assets/4609c162-71dd-46d6-874b-be3becc8279f" />
+<img width="781" height="703" alt="image" src="https://github.com/user-attachments/assets/2f612188-693d-406f-8b44-a3dde96077ef" />
+
 
 
 -----
