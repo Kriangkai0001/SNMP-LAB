@@ -1,4 +1,4 @@
-# SNMP-LAB
+# SNMP-MONITER
 
 <img width="781" height="703" alt="image" src="https://github.com/user-attachments/assets/2f612188-693d-406f-8b44-a3dde96077ef" />
 
@@ -305,20 +305,7 @@ sudo chown snmp_exporter:snmp_exporter /usr/local/bin/snmp_exporter
 # This is a very basic example. You will need a full snmp.yml with Mikrotik OIDs.
 # For a real setup, download snmp.yml from: https://github.com/prometheus/snmp_exporter/tree/main/generator
 sudo tee /etc/snmp_exporter/snmp.yml > /dev/null <<EOF
-modules:
-  mikrotik:
-    walk:
-      - sysUpTime
-      - ifDescr
-      - ifInOctets
-      - ifOutOctets
-      - hrStorageUsed
-      - hrStorageSize
-      - hrMemorySize
-    version: 2c
-    retries: 3
-    timeout: 5s
-    community: public # IMPORTANT: CHANGE THIS TO YOUR MIKROTIK SNMP COMMUNITY STRING!
+
 EOF
 
 # Set ownership for config
