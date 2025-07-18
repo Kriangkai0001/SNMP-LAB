@@ -23,7 +23,7 @@ Before starting this lab, prepare the following VM image files:
 
 2.  **Mikrotik RouterOS (.vmdk):**
 
-      * Download the CHR (Cloud Hosted Router) .vmdk from: [https://mikrotik.com/download/archive](https://mikrotik.com/download/archive)
+      * Download the CHR (Cloud Hosted Router) .vmdk from: [https://mikrotik.com/download/archive](https://download.mikrotik.com/routeros/6.49.18/chr-6.49.18.vmdk.zip)
       * *Note: Select "Cloud Hosted Router (CHR)" and the .vmdk file format for your virtualization software.*
 
 -----
