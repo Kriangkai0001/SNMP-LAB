@@ -57,20 +57,7 @@ Before starting this lab, prepare the following VM image files:
 
 1.  **Connect to RHEL VM:** Via SSH or the VM console.
 
-2.  **Mount ISO/DVD (if needed):**
-
-      * If you plan to use the RHEL ISO as a local package source (e.g., for installing necessary packages offline), mount it:
-
-    <!-- end list -->
-
-    ```bash
-    sudo mkdir /mnt/cdrom
-    sudo mount /dev/sr0 /mnt/cdrom  # /dev/sr0 is typically the CD-ROM/DVD drive device name
-    ```
-
-      * *Note: If your RHEL VM has direct internet access (e.g., via NAT/Bridged Adapter) and you will use Red Hat Subscription Manager to download packages, this ISO mount might not be strictly necessary for repo setup, but it's useful for offline package installation.*
-
-3.  **Create `mountrepo.sh` script (for Repository Configuration):**
+2.  **Create `mountrepo.sh` script (for Repository Configuration):**
 
       * Open a new file using `vi`:
 
@@ -84,52 +71,97 @@ Before starting this lab, prepare the following VM image files:
 
     <!-- end list -->
 
-    ```bash
-    #!/bin/bash
+```bash
+#!/bin/bash
 
-    # --- Script to configure a local YUM/DNF repository from a mounted RHEL ISO ---
+MOUNT_POINT="/mnt/cdrom"
+PERSISTENT_REPO_PATH="/mnt/rhel_repo"
+REPO_ID="rhel-local-media"
+REPO_NAME="Red Hat Enterprise Linux Local Media"
+ISO_DEVICE="/dev/sr0"
 
-    # Define mount point and repo ID
-    MOUNT_POINT="/mnt/cdrom"
-    REPO_ID="rhel-local-media"
-    REPO_NAME="Red Hat Enterprise Linux Local Media"
+sudo mkdir -p "${MOUNT_POINT}" || { echo "Error: Could not create or ensure directory ${MOUNT_POINT}. Exiting."; exit 1; }
 
-    echo "Checking if ${MOUNT_POINT} is mounted..."
-    if ! mountpoint -q "${MOUNT_POINT}"; then
-        echo "Error: ${MOUNT_POINT} is not mounted. Please mount your RHEL ISO first. (e.g., sudo mount /dev/sr0 ${MOUNT_POINT})"
+if ! mountpoint -q "${MOUNT_POINT}"; then
+    sudo mount -o ro "${ISO_DEVICE}" "${MOUNT_POINT}"
+    if [ $? -ne 0 ]; then
+        echo "Error: Failed to mount ${ISO_DEVICE} to ${MOUNT_POINT}. Please ensure the RHEL ISO is inserted and ${ISO_DEVICE} is correct."
         exit 1
     fi
+    echo "ISO mounted successfully."
+else
+    echo "${MOUNT_POINT} is already mounted. Proceeding."
+fi
 
-    echo "Creating repository configuration file..."
-    sudo tee /etc/yum.repos.d/${REPO_ID}.repo > /dev/null <<EOF
-    [${REPO_ID}]
-    name=${REPO_NAME}
-    baseurl=file://${MOUNT_POINT}/AppStream
-    enabled=1
-    gpgcheck=0
+sudo mkdir -p "${PERSISTENT_REPO_PATH}" || { echo "Error: Could not create or ensure directory ${PERSISTENT_REPO_PATH}. Exiting."; exit 1; }
 
-    [${REPO_ID}-BaseOS]
-    name=${REPO_NAME} - BaseOS
-    baseurl=file://${MOUNT_POINT}/BaseOS
-    enabled=1
-    gpgcheck=0
-    EOF
+if [ ! -d "${MOUNT_POINT}/BaseOS" ] || [ ! -d "${MOUNT_POINT}/AppStream" ]; then
+    echo "Error: BaseOS or AppStream directories not found on the mounted ISO. Please ensure it's a valid RHEL ISO."
+    exit 1
+fi
 
-    echo "Cleaning YUM/DNF cache and updating repository list..."
-    sudo dnf clean all
-    sudo dnf repolist
+echo "Copying BaseOS and AppStream from ISO to ${PERSISTENT_REPO_PATH}..."
+echo "This may take some time and consume significant disk space in ${PERSISTENT_REPO_PATH}."
 
-    echo "Local repository setup complete. You can now install packages from the mounted ISO."
-    echo "To test: sudo dnf install httpd"
-    ```
+if [ -d "${PERSISTENT_REPO_PATH}/BaseOS" ]; then
+    echo "  - Removing existing ${PERSISTENT_REPO_PATH}/BaseOS to ensure clean copy..."
+    sudo rm -rf "${PERSISTENT_REPO_PATH}/BaseOS"
+fi
+if [ -d "${PERSISTENT_REPO_PATH}/AppStream" ]; then
+    echo "  - Removing existing ${PERSISTENT_REPO_PATH}/AppStream to ensure clean copy..."
+    sudo rm -rf "${PERSISTENT_REPO_PATH}/AppStream"
+fi
 
-4.  **Make the script executable:**
+echo "Copying BaseOS..."
+sudo cp -r "${MOUNT_POINT}/BaseOS" "${PERSISTENT_REPO_PATH}/" || { echo "Error: Failed to copy BaseOS. Exiting."; exit 1; }
+echo "Copying AppStream..."
+sudo cp -r "${MOUNT_POINT}/AppStream" "${PERSISTENT_REPO_PATH}/" || { echo "Error: Failed to copy AppStream. Exiting."; exit 1; }
+echo "Copying complete."
+
+if mountpoint -q "${MOUNT_POINT}"; then
+    sudo umount "${MOUNT_POINT}" || echo "Warning: Failed to unmount ${MOUNT_POINT}. It might be busy."
+fi
+
+REPO_FILE="/etc/yum.repos.d/${REPO_ID}.repo"
+sudo tee "${REPO_FILE}" > /dev/null <<EOF
+[${REPO_ID}-AppStream]
+name=${REPO_NAME} - AppStream
+baseurl=file://${PERSISTENT_REPO_PATH}/AppStream
+enabled=1
+gpgcheck=0
+
+[${REPO_ID}-BaseOS]
+name=${REPO_NAME} - BaseOS
+baseurl=file://${PERSISTENT_REPO_PATH}/BaseOS
+enabled=1
+gpgcheck=0
+EOF
+
+if [ $? -ne 0 ]; then
+    echo "Error: Failed to create repository configuration file. Exiting."
+    exit 1
+fi
+echo "Repository configuration file created successfully."
+
+sudo dnf clean all || { echo "Warning: dnf clean all failed. Continuing..."; }
+sudo dnf repolist || { echo "Error: dnf repolist failed. Check your repository configuration."; exit 1; }
+
+echo "Local repository setup complete using copied content at ${PERSISTENT_REPO_PATH}."
+echo "You can now install packages from the copied ISO content."
+echo "To test: sudo dnf install httpd"
+
+echo ""
+echo "The ISO content has been copied to ${PERSISTENT_REPO_PATH}."
+echo "You can now safely remove the RHEL ISO from your system."
+```
+
+3.  **Make the script executable:**
 
     ```bash
     chmod +x mountrepo.sh
     ```
 
-5.  **Run the `mountrepo.sh` script:**
+4.  **Run the `mountrepo.sh` script:**
 
     ```bash
     ./mountrepo.sh
