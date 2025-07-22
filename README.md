@@ -171,11 +171,11 @@ echo "You can now safely remove the RHEL ISO from your system."
 
 ### **Step 3: Download and Prepare Grafana/Prometheus Installation Script**
 
-1.  **Create `install_monitoring_tools.sh` script:**
+1.  **Create `monitoring_tools.sh` script:**
       * Open a new file using `vi`:
     <!-- end list -->
     ```bash
-    vi install_monitoring_tools.sh
+    vi monitoring_tools.sh
     ```
       * **Copy and paste the script content below** into `vi` (Press `i` for Insert Mode, paste, press `Esc`, type `:wq` and Enter to save and exit):
 
